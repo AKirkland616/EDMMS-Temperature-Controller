@@ -1,0 +1,5 @@
+## == MSP430 == ##
+
+# MSP430 binaries
+*.elf
+*.hex

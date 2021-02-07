@@ -1,0 +1,217 @@
+% Page formatting
+\documentclass[11pt]{article}
+\usepackage{algorithm,algorithmic,amsmath,amsgen,amstext,amssymb,amsthm,amsbsy,amsopn,amsfonts,esint,hyperref}
+\usepackage{bm}
+\usepackage{tikz}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\pagestyle{plain}
+
+\usetikzlibrary{shapes,arrows.meta,decorations.markings,positioning}
+
+\setlength{\textwidth}{6.5 in}
+\setlength{\textheight}{9 truein}
+\setlength{\evensidemargin}{ 0 in}
+\setlength{\oddsidemargin}{0 in}
+\setlength{\topmargin}{-0.5 in}
+\setlength{\parskip} {0.125 in}
+\setlength{\parindent} {0 in}
+
+\renewcommand{\familydefault}{\sfdefault}
+
+% Remappings
+\newcommand{\R}{\mathbb{R}}
+\renewcommand\qedsymbol{ \blacksquare }
+\newcommand{\arrowtext}[1]{\scriptstyle{\boldsymbol{#1}}}
+
+% Theorems
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{lemma}[theorem]{Lemma}
+
+% Definitions
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+
+% Beginning of document
+\begin{document}
+\noindent
+\begin{minipage}{1.00\textwidth}
+    \begin{flushleft}
+        % title
+        \textbf{\huge Project Report: EDMMS Temperature Controller} \\[1ex]
+        % author
+        \Large Jeremy Evans, Lorand Mezei, Macallister Armstrong, Anthony Kirkland
+    \end{flushleft}
+\noindent\rule{\textwidth}{1pt}
+\end{minipage}
+
+% tikz colors
+\definecolor{wmugold}{RGB}{241,197,0}
+
+% == tikzset ==
+\tikzset{
+    block/.style={
+        draw,
+        fill=wmugold,
+        rectangle,
+        minimum height=3em,
+        minimum width=7em,
+    },
+    sum/.style={
+        draw,
+        fill=wmugold,
+        circle,
+        node distance=1cm
+    },
+    input/.style={coordinate},
+    output/.style={coordinate},
+    blank/.style={coordinate},
+    pinstyle/.style={
+        pin edge={to-,thin,black}
+    },
+    big_arrow/.style={
+        decoration={markings,mark=at position 1 with {\arrow[scale=2,>=latex]{>}}},
+        postaction={decorate},
+        shorten >=0.4pt
+    },
+}
+
+% =======================================================================================================================
+% body
+
+% section: Purpose
+\section{Purpose}
+
+This document introduces the theory of PID control and its programmatic implementation. We will define, at a high
+level, what a PID controller is, what its purpose is, loop tuning, and its implementation in software. It is meant to
+serve as an aid for designing the programming logic of a PID controller that utilizes an MSP430 MCU.
+
+Portions of the following text may go into the final report upon approval.
+
+% subsection: Version history
+\subsection{Version history}
+
+\begin{tabularx}{1.0\textwidth} {
+    | >{\raggedright\arraybackslash}X
+    | >{\raggedright\arraybackslash}X
+    | >{\raggedright\arraybackslash}X
+    | >{\raggedright\arraybackslash}X | }
+    \hline
+    \textbf{Date} & \textbf {Author} & \textbf{Comments} & \textbf {Version} \\
+    \hline
+    2/3/2021 & Jeremy Evans & Initial document & 1.0 \\
+    \hline
+\end{tabularx}
+
+% section: Introduction
+\section{Introduction}
+
+A PID controller (proportional-integral-derivative controller) is a feedback control loop mechanism that receives a desired \textit{setpoint}
+$r(t)$ as input and outputs a \textit{process variable} (PV), denoted as $y(t)$, which is then fed back into the system
+as input. It continuously calculates an \textit{error value} $e(t)$ as the difference between the desired setpoint and the process variable
+and applies a correction based on \textit{proportional} (P), \textit{integral} (I), and \textit{derivative} (D) terms, which are summed
+together to make up the \textit{control variable}, $u(t)$ affecting the value of the process variable, hence the name. 
+In applying this correction over time, it attempts to stabilize the output, i.e., eliminate the oscillation of the error value 
+(or achieve marginal stability, or bounded oscillation, though specifications vary between applications).
+
+Corrections are achieved by multiplying the P, I, and D terms by constants $K_{p}$, $K_{i}$, and $K_{d}$ respectively, each chosen through
+a process known as \textit{loop tuning.} Improperly chosen constants would result in the error value diverging (with or without oscillation),
+whereas properly chosen constants would have the desired effect of the error value converging.
+
+\newpage
+
+% subsection: Mathematical Definition
+\subsection{Mathematical Definition}
+
+PID control is mathematically defined as: 
+
+\[ u(t) = K_{p}e(t) + K_{i}\int_{0}^{t}e(\tau)d(\tau) + K_{d}\frac{de(t)}{dt},\] 
+
+where
+
+\begin{itemize}
+    \item $u(t)$ is the \textit{control variable}, the parameter that is controlled,
+    \item $K_{p} \in \R \geq 0$ is the \textit{proportional gain,}
+    \item $K_{i} \in \R \geq 0$ is the \textit{integral gain,}
+    \item $K_{d} \in \R \geq 0$ is the \textit{derivative gain,}
+    \item $e(t) = r(t) - y(t)$ is the error ($r(t) = SP$ is the \textit{setpoint,} $y(t) = PV$ is the \textit{process variable}),
+    \item $t$ is the \textit{instantaneous time} (i.e., the current time),
+    \item $\tau \in \R$ are measurements of time in the range $[0, t]$.
+\end{itemize}
+
+% subsection: PID Block Diagram
+\subsection{PID Block Diagram}
+
+The PID algorithm is given by the following block diagram:
+
+% PID block diagram
+\begin{tikzpicture}[auto]
+    % nodes: input
+    \node [input, name=input]{};
+    \node [sum, right = 1.3cm of input] (sum_1) {$\Sigma$};
+    \node [blank, name = root, right = 1.7cm of sum_1]{};
+    
+    % nodes: PID
+    \node [block, text width = 7em, right = 1cm of root] (pid_integral) {\textbf{I}: $K_{i}\int_{0}^{t}e(\tau)d\tau$};
+    \node [block, text width = 7em, above = of pid_integral] (pid_proportional) {\textbf{P}: $K_{p}e(t)$};
+    \node [block, text width = 7em, below = of pid_integral] (pid_derivative) {\textbf{D}: $K_{d}\frac{de(t)}{dt}$};
+    
+    % nodes: Output
+    \node [sum, right = 2cm of pid_integral] (sum_2) {$\Sigma$};
+    \node [block, right = 1.5cm of sum_2] (plant_process) {Plant Process};
+    \node [blank, name=feedback, right = 0.2cm of plant_process]{}; 
+    \node [output, name=output, right = 1.60cm of feedback]{};
+    \node [block, below = of pid_derivative] (sensor) {sensor};
+
+    % arrows: input -> PID
+    \draw [big_arrow] (input) -- node [above]{$r(t)$} node [below,pos=0.90] {$\arrowtext{+}$}(sum_1);
+    \draw [-] (sum_1) -- node {$e(t)$}(root);
+    \draw [big_arrow] (root) -- (pid_integral);
+    \draw [big_arrow] (root) |- (pid_proportional);
+    \draw [big_arrow] (root) |- (pid_derivative);
+
+    % arrows: PID -> PV
+    \draw [big_arrow] (pid_integral) -- node [pos=0.90]{$\arrowtext{+}$}(sum_2);
+    \draw [big_arrow] (pid_proportional) -| node [pos=0.90]{$\arrowtext{+}$} (sum_2);
+    \draw [big_arrow] (pid_derivative) -| node [pos=0.90]{$\arrowtext{+}$}(sum_2);
+    \draw [big_arrow] (sum_2) -- node{$u(t)$}(plant_process);
+
+    % arrows: p(v) -> r(t)
+    \draw [-] (plant_process) -- (feedback);
+    \draw [-] (feedback) |- (sensor);
+    \draw [big_arrow] (sensor) -| node [below,pos=0.30] {measurement} node [pos=0.96]{$\arrowtext{-}$}(sum_1);
+    \draw [big_arrow] (feedback) -- node {$y(t)$}(output);
+\end{tikzpicture}
+
+Represented in a high-level model of a heat treatment furnace, $r(t),$ the setpoint, would be the desired
+furnace temperature; $u(t),$ the control variable, would be the gas flow rate; and $y(t),$ the process
+variable, would be the measured furnace temperature.
+
+% subsection: PID Terms
+\subsection{PID Terms}
+
+% subsubsection: Proportional
+\subsubsection{Proportional}
+
+Given by $P_{out} = K_{p}e(t),$ the proportional term produces an output that is proportional to the current error value $e(t);$ the greater
+the error value, the greater the control output. This output is multiplied by a gain factor $K_{p} \in \R \geq 0$ that determines how responsive
+the controller should be with a given error-value. Large values of $K_{p}$ result in a large change in the output for a given change in the
+error. However, exceptionally large values may result in the output \textit{overshooting} the setpoint (exceeding the value of the setpoint)
+and, in the worst case, destabilizing the system whereupon the error rate diverges.
+
+% subsubsection: Integral
+\subsubsection{Integral}
+
+Given by $I_{out} = K_{i}\int_{0}^{t}e(\tau)d\tau$
+
+% subsubsection: Derivative
+\subsubsection{Derivative}
+
+Given by $K_{i}\int_{0}^{t}e(\tau)d\tau$
+
+% subsection: Loop Tuning
+\subsection{Loop Tuning}
+
+\end{document}
