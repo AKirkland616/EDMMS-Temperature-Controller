@@ -4,6 +4,10 @@
 
 Contained here are the .tex and .pdf files for the project report for the EDMMS PID Temperature controller. It is meant to serve as the project's official documentation and will be updated as the project develops.
 
+### 1.1 An Important Note About Publishing Changes Made to the Project Report
+
+Only publish changes made to the progress report in the branch "project_report." We can merge that branch into main recursively.
+
 ## 2 Compilation
 
 To produce a PDF from the included LaTeX document, you would need a TeX distribution. Below is an incomplete list of TeX distributions available:
