@@ -1,5 +1,7 @@
 #include "dtc.h"
 #include <msp430g2553.h>
+#include <libemb/serial/serial.h>
+#include <libemb/conio/conio.h>
 
 /***************************************************************
  GLOBALS
@@ -22,7 +24,7 @@ int main(void) {
   P1DIR  = BIT2; // No button, no potentiometer, no BIT0
   P1SEL |= BIT2; // RED selected for PWM stuff              
   P1OUT  = BIT2; // Turn on RED/turn off B segment
-  // P1OUT |=  BIT3; // Input is a go
+  P1OUT |=  BIT3; // Input is a go
   P1IE  |=  BIT3; // Interrupt something r other
   P1IES |=  BIT3; // Same
   P1IFG &= ~BIT3; // Clear interrupt flag
