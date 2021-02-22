@@ -43,7 +43,7 @@ Below are a few LaTeX editors dedicated specifically to LaTeX, some of which con
     - Scientific WorkPlace
     - WinEdt
 
-Alternatively, you could integrate a plugin or library into a general-purpose text editor and compile separate with a TeX distribution (e.g., use **vimtex** with vim in linux and compile with **latexmk**).
+Alternatively, you could integrate a plugin or library into a general-purpose text editor and compile separate with a TeX distribution (e.g., use **vimtex** with vim in Linux and compile with **latexmk**).
 
 ### 2.1 LaTeX Packages Used
 
