@@ -1,7 +1,7 @@
 # UI
 
 ## So Far
-All commands define, parsed, routed to functions
+All commands defined, parsed, routed to functions
 
 ## To Do
-Add options to functions, to be received as parameters in the C functions
+Add options for command line arguments, to be received as parameters in the C functions
