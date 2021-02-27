@@ -69,30 +69,35 @@ int shell_cmd_load_program(shell_cmd_args *args)
 
   return 0;
 }
+
 int shell_cmd_load_step(shell_cmd_args *args)
 {
   cio_printf("%s\r\n", "LOAD STEP");
 
   return 0;
 }
+
 int shell_cmd_set_target_setpoint(shell_cmd_args *args)
 {
   cio_printf("%s\r\n", "SET TARGET SETPOINT");
 
   return 0;
 }
+
 int shell_cmd_set_interval(shell_cmd_args *args)
 {
   cio_printf("%s\r\n", "SET INTERVAL");
 
   return 0;
 }
+
 int shell_cmd_reset_set_verbose(shell_cmd_args *args)
 {
   cio_printf("%s\r\n", "RESET/SET VERBOSE");
 
   return 0;
 }
+
 int shell_cmd_set_reporting_interval(shell_cmd_args *args)
 {
   cio_printf("%s\r\n", "SET REPORTING INTERVAL");
@@ -103,17 +108,6 @@ int shell_cmd_set_reporting_interval(shell_cmd_args *args)
 int shell_process(char *cmd_line)
 {
   return shell_process_cmds(&my_shell_cmds, cmd_line);
-}
-
-/******
- *
- *      FUNCTIONS
- *
- ******/
-
-int cost(box_t* box) {
-
-  return box->quantity * box->price;
 }
 
 /******
@@ -193,26 +187,3 @@ int main(void)
   return 0;
 }
 
-/******
- *
- *      INTERRUPTS
- *
- ******/
-#pragma vector=PORT1_VECTOR
-__interrupt void Port1_ISR (void)
-{
-  // swap the top two boxes on the stack when the button is pressed
-
-  while (!(BIT3 & P1IN)) {} // is finger off of button yet?
-  __delay_cycles(32000);    // wait 32ms
-  P1IFG &= ~BIT3;           // clear interrupt flag
-
-  if (stack_top < 2) {      // need 2 boxes to swap
-    cio_printf("%s", "\r\n\r\nNOT ENOUGH ITEMS\r\n\r\n$ ");
-  } else {
-    box_t *box = malloc(sizeof(box_t));           // allocate memory
-    box = stack[stack_top - 2];                   // s 
-    stack[stack_top - 2] = stack[stack_top - 1];  // w
-    stack[stack_top - 1] = box;                   // a
-  }                                               // p    
-}

@@ -5,18 +5,6 @@
 
 /******
  *
- *    STRUCTURES
- *
- ******/
-
-typedef struct _box_t {
-    char* name;
-    int quantity;
-    int price;
-} box_t;
-
-/******
- *
  *    PROTOTYPES
  *
  ******/
@@ -32,8 +20,6 @@ int shell_cmd_set_target_setpoint(shell_cmd_args*);
 int shell_cmd_set_interval(shell_cmd_args*);
 int shell_cmd_reset_set_verbose(shell_cmd_args*);
 int shell_cmd_set_reporting_interval(shell_cmd_args*);
-
-int cost(box_t*);
 
 /******
  *
@@ -107,8 +93,6 @@ shell_cmds my_shell_cmds = {
  *
  ******/
 
-box_t* stack[5];
-int stack_top = 0;
 char cmd_line[90];
 
 #endif
