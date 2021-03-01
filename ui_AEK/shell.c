@@ -5,6 +5,7 @@
 #include <libemb/conio/conio.h>
 #include <libemb/shell/shell.h>
 #include "shell.h"
+#include <ctype.h>
 /******
  *
  *      GLOBAL VARIABLES
@@ -13,6 +14,15 @@
 
 char cmd[90] = {0};
 
+int validate_input(char *input)
+{
+  for(int i = 0; input[i] != '\0'; i++) {
+    if(!(isdigit(input[i]))) {
+      return 0;
+    }
+  }
+	return 1;
+}  
 /******
  *
  *      CALLBACK HANDLERS

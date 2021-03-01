@@ -29,7 +29,7 @@ flash: $(NAME).elf
 
 # Erase board
 erase:
-	mspdebug rf2500 erase
+	mspdebug $(DRIVER) erase
 
 # Clean up temporary files
 clean:
@@ -37,5 +37,5 @@ clean:
 
 # Remote debug board
 debug: $(NAME).elf
-	( mspdebug rf2500 "gdb" 1>/dev/null & ); msp430-gdb $(NAME).elf -ex "target remote :2000"
+	( mspdebug $(DRIVER) "gdb" 1>/dev/null & ); msp430-gdb $(NAME).elf -ex "target remote :2000"
 
