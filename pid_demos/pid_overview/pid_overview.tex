@@ -257,7 +257,17 @@ Divide \textbf{eq.~\ref{eq1}} into three functions $P(t),$ $I(t),$ and $D(t),$ w
 \end{split}
 \end{align*}
 
-Below, we apply the Laplace transform to each in turn.
+Recall that the integral of a real-valued function $f(t)$ from $t = 0$ to $t = \infty$ is equal to evaluating the integral
+from $0$ to some number $a \in \R$ that approaches $\infty$ from the left:
+
+\begin{align*}
+\begin{split}
+    \int_{0}^{\infty}f(t)dt = \lim_{a\to\infty^{-}}\left(\int_{0}^{a}f(t)dt\right)
+\end{split}
+\end{align*}
+
+
+With that, we can apply the Laplace transform to $P$, $I$, and $D$.
 
 % subsubsection: Laplace: P(t)
 \subsubsection{Laplace: P(t)}
@@ -290,4 +300,36 @@ Below, we apply the Laplace transform to each in turn.
 % subsubsection: Laplace: D(t)
 \subsubsection{Laplace: D(t)}
 
+\begin{align*}
+\begin{split}
+    D(s) &:= \mathcal{L}\{D(t)\} \\\\
+         &= \int_{0}^{\infty}K_{d}\frac{de(t)}{dt}e^{-st}dt \\\\
+         &= K_{d} \int_{0}^{\infty}e^{-st}\frac{de(t)}{dt}dt \\\\
+         &= K_{d}\left(e^{-st}e(t)\Bigr\rvert_{0}^{\infty} - \int_{0}^{\infty}-se^{st}e(t)dt\right) \\\\
+         &= K_{d}\left(0 - e(0) + s \int_{0}^{\infty}e^{-st}e(t)dt\right) \\\\
+         &= K_{d}\left(s\mathcal{L}\{e(t) - 0\}\right) \\\\
+         &= K_{d}sE(s); \text{($e(0) = 0$, since no signal is supplied at $t = 0$).}
+\end{split}
+\end{align*}
+
+% subsubsection: Laplace: u(t)
+\subsubsection{Laplace: u(t)}
+
+Applying the Laplace transform to \textbf{eq.\ref{eq1}} gives:
+
+\begin{align*}
+\begin{split}
+    U(s) &= \mathcal{L}\{u(t)\} \\\\
+         &= \mathcal{L}\{P(t) + I(t) + D(t)\} \\\\
+         &= K_{p}E(s) + \frac{K_{i}E(s)}{s} + K_{d}sE(s) \\\\
+         &= \left(K_{p} + \frac{K_{i}}{s} + K_{d}s\right)E(s)
+\end{split}
+\end{align*}
+
+Dividing both sides by $E(s)$ gives the \textit{transfer function} $H_{a}(s)$, which in this case is the linear mapping of the Laplace transform of
+the error signal, $E(s) = \mathcal{L}\{e(t)\}$, to the Laplace transform of the control variable, $U(s) = \mathcal{L}\{u(t)\}$:
+
+\[ H_{a}(s) := \frac{U(s)}{E(s)} = K_{p} + \frac{K_{i}}{s} + K_{d}s.\] 
+
+TODO: LOW PASS FILTER FOR $K_{d}s$ ?!?!
 \end{document}
