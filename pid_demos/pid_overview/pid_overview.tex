@@ -307,7 +307,7 @@ With that, we can apply the Laplace transform to $P$, $I$, and $D$.
          &= K_{d} \int_{0}^{\infty}e^{-st}\frac{de(t)}{dt}dt \\\\
          &= K_{d}\left(e^{-st}e(t)\Bigr\rvert_{0}^{\infty} - \int_{0}^{\infty}-se^{st}e(t)dt\right) \\\\
          &= K_{d}\left(0 - e(0) + s \int_{0}^{\infty}e^{-st}e(t)dt\right) \\\\
-         &= K_{d}\left(s\mathcal{L}\{e(t) - 0\}\right) \\\\
+         &= K_{d}\left(s\mathcal{L}\{e(t)\} - e(0)\right) \\\\
          &= K_{d}sE(s); \text{($e(0) = 0$, since no signal is supplied at $t = 0$).}
 \end{split}
 \end{align*}
