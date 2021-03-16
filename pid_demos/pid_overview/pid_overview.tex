@@ -312,6 +312,12 @@ With that, we can apply the Laplace transform to $P$, $I$, and $D$.
 \end{split}
 \end{align*}
 
+$D(s)$ amplifies higher frequency measurements (or proces noise), resulting in large amounts of change in the output. To reduce the term's responsiveness to
+high frequency noise, is it common to filter the measurements with a low-pass filter. One such implementation is to replace $D(t)$ with the following:
+
+\[ D(t) = \frac{K_{d}sE(s)}{T_{f}s + 1},\] 
+
+where $T_{f} \in \R$ is a relatively short contant of time.
 % subsubsection: Laplace: u(t)
 \subsubsection{Laplace: u(t)}
 
@@ -321,15 +327,24 @@ Applying the Laplace transform to \textbf{eq.\ref{eq1}} gives:
 \begin{split}
     U(s) &= \mathcal{L}\{u(t)\} \\\\
          &= \mathcal{L}\{P(t) + I(t) + D(t)\} \\\\
-         &= K_{p}E(s) + \frac{K_{i}E(s)}{s} + K_{d}sE(s) \\\\
-         &= \left(K_{p} + \frac{K_{i}}{s} + K_{d}s\right)E(s)
+         &= K_{p}E(s) + \frac{K_{i}E(s)}{s} + \frac{K_{d}sE(s)}{T_{f}s + 1}\\\\
+         &= \left(K_{p} + \frac{K_{i}}{s} + \frac{K_{d}s}{T_{f}s + 1}\right)E(s)
 \end{split}
 \end{align*}
 
 Dividing both sides by $E(s)$ gives the \textit{transfer function} $H_{a}(s)$, which in this case is the linear mapping of the Laplace transform of
-the error signal, $E(s) = \mathcal{L}\{e(t)\}$, to the Laplace transform of the control variable, $U(s) = \mathcal{L}\{u(t)\}$:
+the error signal, $E(s) = \mathcal{L}\{e(t)\}$, to the Laplace transform of the control variable, $U(s) = \mathcal{L}\{u(t)\}$ (with the filtered
+derivative term):
 
-\[ H_{a}(s) := \frac{U(s)}{E(s)} = K_{p} + \frac{K_{i}}{s} + K_{d}s.\] 
+\begin{equation} \label{eq3}
+    \boxed{
+        H_{a}(s) := \frac{U(s)}{E(s)} = K_{p} + \frac{K_{i}}{s} + \frac{K_{d}s}{T_{f}s + 1} 
+    }
+\end{equation}
 
-TODO: LOW PASS FILTER FOR $K_{d}s$ ?!?!
+% subsection: Bilinear Transform
+\subsection{Bilinear Transform}
+
+
+
 \end{document}
