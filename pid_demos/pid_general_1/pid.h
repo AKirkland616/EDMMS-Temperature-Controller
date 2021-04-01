@@ -1,5 +1,5 @@
 // Program:     Pid_General_1
-// file:        pid.h
+// File:        pid.h
 // Author:      Jeremy Evans
 //
 // Description: Declares data structures and functions for a generic PID
@@ -7,10 +7,10 @@
 //
 // ==============================================================================
 
-# ifndef PID_GENERAL
-# define PID_GENERAL
+#ifndef PID_GENERAL
+#define PID_GENERAL
 
-#include <stdio.h>
+#include "pid_test_constants.h"
 
 /**
  * Contains all of the necessary data for a single instance of a PID controller.
@@ -51,10 +51,8 @@ typedef struct __PIDController {
 
 /**
  * Initializes a new pid controller with default values.
- * 
- * @param pid The PID controller struct to be initialized.
  */
-void PID_Init(PIDController* pid);
+PIDController* PID_Init();
 
 /**
  * Computes the controller output based on a given setpoint and measurement.

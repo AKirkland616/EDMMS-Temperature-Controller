@@ -1,12 +1,19 @@
+// Program:     Pid_General_1
+// File:        pid.c
+// Author:      Jeremy Evans
+//
+// Description: Implementation of pid.h
+//
+// ==============================================================================
+
+#include <stdlib.h>
 #include "pid.h"
 
-void PID_Init(PIDController* pid)
+PIDController* PID_Init()
 {
-    if (pid == NULL)
-    {
-        pid = (PIDController*)malloc(sizeof(PIDController));
-    }
+    PIDController* pid = (PIDController*)malloc(sizeof(PIDController));
 
+    // Initialize process variable components
     pid->integrator = 0.0f;
     pid->prevError = 0.0f;
 
@@ -14,6 +21,17 @@ void PID_Init(PIDController* pid)
     pid->prevMeasurement = 0.0f;
 
     pid->output = 0.0f;
+
+    // Set PID variables with testing constants
+    pid->proportionalGain = TEST_PROPORTIONAL_GAIN;
+    pid->integralGain = TEST_INTEGRAL_GAIN;
+    pid->derivativeGain = TEST_DERIVATIVE_GAIN;
+    pid->lpfconstant = TEST_LPF_CONSTANT;
+    pid->outputMin = TEST_OUTPUT_MIN;
+    pid->outputMax = TEST_OUTPUT_MAX;
+    pid->samplingTime = TEST_SAMPLE_TIME_S;
+
+    return pid;
 }
 
 float PID_Update(PIDController* pid, float setpoint, float measurement)
@@ -27,11 +45,11 @@ float PID_Update(PIDController* pid, float setpoint, float measurement)
     pid->integrator += + 0.5f * pid->integralGain * pid->samplingTime * (error + pid->prevError);
 
     // Calculate integrator limits
-    float limMaxInt = pid->outputMax > proportional
+    float limMaxInt = proportional < pid->outputMax 
         ? pid->outputMax - proportional
         : 0.0f;
 
-    float limMinInt = pid->outputMin < proportional
+    float limMinInt = proportional > pid->outputMin
         ? pid->outputMin - proportional
         : 0.0f;
 

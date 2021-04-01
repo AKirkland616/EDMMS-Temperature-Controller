@@ -114,7 +114,7 @@ an acceptable bounds).
 % subsection: Mathematical Definition
 \subsection{Mathematical Definition}
 
-PID control is mathematically defined as:
+The parallel form of PID control is mathematically defined as:
 
 \begin{equation} \label{eq1}
     \boxed{
@@ -156,7 +156,7 @@ The PID algorithm can be represented by the following block diagram:
     \node [block, right = 1.5cm of sum_2] (plant_process) {Plant Process};
     \node [blank, name=feedback, right = 0.2cm of plant_process]{};
     \node [output, name=output, right = 1.60cm of feedback]{};
-    \node [block, below = of pid_derivative] (sensor) {sensor};
+    \node [block, below = of pid_derivative] (sensor) {Sensor};
 
     % arrows: input -> PID
     \draw [big_arrow] (input) -- node [above]{$r(t)$} node [below,pos=0.90] {$\arrowtext{+}$}(sum_1);
@@ -432,7 +432,8 @@ the interest of brevity):
 \end{split}
 \end{align*}
 
-By multiplying both sides of \textbf{eq.\ref{eq5}} by $E(z)$ and taking the inverse Z-transform of the result, we get the following difference equation:
+By multiplying both sides of \textbf{eq.\ref{eq5}} by $E(z)$ and taking the inverse Z-transform of the result, we get the following difference equation denoting
+a discretized form of the PID algorithm:
 
 \begin{equation} \label{eq6}
 \boxed{
@@ -440,7 +441,7 @@ By multiplying both sides of \textbf{eq.\ref{eq5}} by $E(z)$ and taking the inve
 }
 \end{equation}
 
-where
+where, similar to $u(t)$ in \textbf{eq.\ref{eq1},} $u[n]$ is the \textit{control variable} at discrete time index $n$ and
 \begin{align*}
 \begin{split}
     p[n] &= K_{p}e[n] \\\\
@@ -448,6 +449,49 @@ where
     d[n] &= \frac{2K_{d}}{2\tau + T}\left(e[n] - e[n-1]\right) + \frac{2\tau - T}{2\tau + T}d[n-1].
 \end{split}
 \end{align*}
+
+\newpage
+Below is a block diagram of the discretized PID algorithm. Here, $r[n]$ denotes the \textit{setpoint} at time $n$ and $y[n]$ the \textit{process variable.}
+Notice it is very similar to the block diagram for the continuous variant.
+
+% Discrete PID block diagram
+\begin{tikzpicture}[auto]
+    % nodes: input
+    \node [input, name=input]{}; 
+    \node [sum, right = 1.3cm of input] (sum_1) {$\Sigma$};
+    \node [blank, name = root, right = 1.7cm of sum_1]{};
+
+    % nodes: PID
+    \node [block, text width = 7em, right = 1cm of root] (pid_integral) {\textbf{I}: $i[n]$};
+    \node [block, text width = 7em, above = of pid_integral] (pid_proportional) {\textbf{P}: $p[n]$};
+    \node [block, text width = 7em, below = of pid_integral] (pid_derivative) {\textbf{D}: $d[n]$};
+
+    % nodes: Output
+    \node [sum, right = 2cm of pid_integral] (sum_2) {$\Sigma$}; 
+    \node [block, right = 1.5cm of sum_2] (plant_process) {Plant Process};
+    \node [blank, name=feedback, right = 0.2cm of plant_process]{};
+    \node [output, name=output, right = 1.60cm of feedback]{};
+    \node [block, below = of pid_derivative] (sensor) {Sensor};
+
+    % arrows: input -> PID
+    \draw [big_arrow] (input) -- node [above]{$r[n]$} node [below,pos=0.90] {$\arrowtext{+}$}(sum_1);
+    \draw [-] (sum_1) -- node {$e[n]$}(root);
+    \draw [big_arrow] (root) -- (pid_integral);
+    \draw [big_arrow] (root) |- (pid_proportional);
+    \draw [big_arrow] (root) |- (pid_derivative);
+
+    % arrows: PID -> PV
+    \draw [big_arrow] (pid_integral) -- node [pos=0.90]{$\arrowtext{+}$}(sum_2);
+    \draw [big_arrow] (pid_proportional) -| node [pos=0.90]{$\arrowtext{+}$} (sum_2);
+    \draw [big_arrow] (pid_derivative) -| node [pos=0.90]{$\arrowtext{+}$}(sum_2);
+    \draw [big_arrow] (sum_2) -- node{$u[n]$}(plant_process);
+
+    % arrows: p(v) -> r(t)
+    \draw [-] (plant_process) -- (feedback);
+    \draw [-] (feedback) |- (sensor);
+    \draw [big_arrow] (sensor) -| node [below,pos=0.30] {measurement} node [pos=0.96]{$\arrowtext{-}$}(sum_1);
+    \draw [big_arrow] (feedback) -- node {$y[n]$}(output);
+\end{tikzpicture}
 
 % section: Implementation
 \section{Implementation}
