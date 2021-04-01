@@ -17,6 +17,6 @@
 #define TEST_OUTPUT_MAX 10.0f
 
 #define TEST_LIM_MIN_INT -5.0f
-#define TEST_LIM_Max_INT -5.0f
+#define TEST_LIM_Max_INT 5.0f
 
 #define TEST_SAMPLE_TIME_S 0.01f
