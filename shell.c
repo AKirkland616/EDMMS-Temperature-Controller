@@ -267,7 +267,7 @@ int main(void)
   P2OUT = 0;// BIT0 | BIT7;
 
   UCB0CTL1 = UCSWRST;
-  UCS0CTL0 |= UCCKPH + UCMSB + UCMST + UCSYNC; // 3-pin, 8-bit SPI master
+  UCB0CTL0 |= UCCKPH + UCMSB + UCMST + UCSYNC; // 3-pin, 8-bit SPI master
   UCB0CTL1 |= UCSSEL_2; // smclk 
 
   serial_init(9600);                        // Initialize Serial Comms
