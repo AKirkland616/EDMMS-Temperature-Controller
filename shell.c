@@ -253,16 +253,22 @@ int main(void)
 
   /* GPIO ***********************************/
   P1DIR  = ~BIT3;
-  P1DIR |=  BIT0 | BIT6;
-  P1OUT  =  BIT3;
+  P1DIR |= BIT5 | BIT6;
+  P1OUT  =  BIT3 | BIT5;
+  P1SEL = BIT5 | BIT6 | BIT7;
+  P1SEL2 = BIT5 | BIT6 | BIT7;
 
   P1REN = BIT3;
   P1IE  = BIT3;
   P1IES = BIT3;
   P1IFG = 0;
 
-  P2DIR = -1;
-  P2OUT = 0;
+  P2DIR = BIT0 | BIT7;
+  P2OUT = 0;// BIT0 | BIT7;
+
+  UCB0CTL1 = UCSWRST;
+  UCS0CTL0 |= UCCKPH + UCMSB + UCMST + UCSYNC; // 3-pin, 8-bit SPI master
+  UCB0CTL1 |= UCSSEL_2; // smclk 
 
   serial_init(9600);                        // Initialize Serial Comms
   __eint();                                 // Enable Global Interrupts
