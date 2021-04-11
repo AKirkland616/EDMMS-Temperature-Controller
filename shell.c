@@ -315,8 +315,12 @@ int main(void)
       default:
         break;
     }
-    P2OUT |= BIT0 | BIT7;
-    cio_printf("Line 1\n");
+    uint32_t result;                           // 32 bit result
+    uint8_t  counter;                          // Counter for loop
+    result =0;
+    P2OUT &= ~BIT7;
+    P2OUT |= BIT0; // | BIT7;
+    /*cio_printf("Line 1\n");
     while (!(IFG2 & UCB0TXIFG)); // USCI_B0 TX buffer ready?
     cio_printf("Line 2\n");
     UCB0TXBUF = 0xAA;		 // Send 0xAA over SPI to Slave
@@ -327,8 +331,25 @@ int main(void)
     cio_printf("Line 4\n");
     cio_printf(">%i<",UCB0RXBUF); // Store recieved data
     P2OUT |= BIT7;		 // Unselect Device
-    
+    */
+    cio_printf("Line 1\n");
+    for( counter = 0; counter < 4; counter++ ) // Read four bytes
+{
+  IFG2 &= ~UCB0RXIFG;                      // Clear pending RX flag
+  UCB0TXBUF = 0x00;                        // Send dummy byte
+  cio_printf("Line 2\n");
+  while( !(IFG2 & UCB0RXIFG) );            // Wait for RX flag to be set
+  result |= UCB0RXBUF;                     // Store received byte
 
+  if( counter <= 2 )                       // For byte 0, 1 and 2
+  {
+    result <<= 8;                          // Shift result left by eight
+  }
+}
+
+P2OUT |= BIT7;                             // Unselect device
+cio_printf("Line 3\n");
+    cio_printf(">%i<\r\n", result);
     cio_print("\n");               // Delimit Result
   }
 
