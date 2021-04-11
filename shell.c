@@ -315,6 +315,19 @@ int main(void)
       default:
         break;
     }
+    P2OUT |= BIT0 | BIT7;
+    cio_printf("Line 1\n");
+    while (!(IFG2 & UCB0TXIFG)); // USCI_B0 TX buffer ready?
+    cio_printf("Line 2\n");
+    UCB0TXBUF = 0xAA;		 // Send 0xAA over SPI to Slave
+    cio_printf("Line 3\n");
+    P2OUT &= ~BIT7;
+    //P2OUT &= ~BIT0;
+    while (!(IFG2 & UCB0TXIFG));	 // USCI_B0 RX received?
+    cio_printf("Line 4\n");
+    cio_printf(">%i<",UCB0RXBUF); // Store recieved data
+    P2OUT |= BIT7;		 // Unselect Device
+    
 
     cio_print("\n");               // Delimit Result
   }
