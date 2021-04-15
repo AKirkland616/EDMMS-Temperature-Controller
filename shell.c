@@ -286,7 +286,9 @@ int main(void)
  *      PROGRAM LOOP
  *
  ******/
-  volatile char received_ch = 0;
+  uint32_t result;                           // 32 bit result
+  uint8_t  counter;                          // Counter for loop
+  
   for (;;) {
     int j = 0;                              // Char array counter
     memset(cmd_line, 0, 90);                // Init empty array
@@ -324,14 +326,23 @@ int main(void)
       default:
         break;
     }
-
-    P2OUT &= ~BIT7;
-    while (!(IFG2 & UCB0TXIFG));
-    UCB0TXBUF = 0xAA;
-    while (!(IFG2 & UCB0RXIFG));
-    received_ch = UCB0RXBUF;
-    cio_printf("%i\n\n", received_ch);
-    P2OUT |= (BIT7);
+   for( counter = 0; counter < 4; counter++ ) // Read four bytes
+   {
+       P2OUT &= ~BIT7;
+       while (!(IFG2 & UCB0TXIFG));
+       UCB0TXBUF = 0xAA;
+       while (!(IFG2 & UCB0RXIFG));
+       result |= UCB0RXBUF;
+    
+    
+       if( counter <= 2 )                       // For byte 0, 1 and 2
+       {   
+          result <<= 8;                          // Shift result left by eight
+       }
+   }
+   cio_printf("%i\n\n", result);
+   result =0;
+   P2OUT |= (BIT7);
   }
 
   return 0;
