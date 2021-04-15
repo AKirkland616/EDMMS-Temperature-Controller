@@ -252,23 +252,31 @@ int main(void)
   DCOCTL   = CALDCO_1MHZ;
 
   /* GPIO ***********************************/
-  P1DIR  = ~BIT3;
-  P1DIR |= BIT5 | BIT6;
-  P1OUT  =  BIT3 | BIT5;
+//  P1DIR  = ~BIT3;
+//  P1DIR |= BIT5;
+//  P1OUT = BIT5;
   P1SEL = BIT5 | BIT6 | BIT7;
   P1SEL2 = BIT5 | BIT6 | BIT7;
 
-  P1REN = BIT3;
-  P1IE  = BIT3;
-  P1IES = BIT3;
-  P1IFG = 0;
+//  P1REN = BIT3;
+//  P1IE  = BIT3;
+//  P1IES = BIT3;
+//  P1IFG = 0;
 
   P2DIR = BIT0 | BIT7;
-  P2OUT = 0;// BIT0 | BIT7;
+  P2OUT = BIT7;// BIT0 | BIT7;
+  P2OUT &= ~BIT0;
+
+  P2SEL &= ~(BIT6 | BIT7);
+  P2SEL2 &= ~(BIT6 | BIT7);
 
   UCB0CTL1 = UCSWRST;
   UCB0CTL0 |= UCCKPH + UCMSB + UCMST + UCSYNC; // 3-pin, 8-bit SPI master
   UCB0CTL1 |= UCSSEL_2; // smclk 
+  UCB0BR0 |= 0x02;
+  UCB0BR1 = 0;
+  //UCB0MCTL = 0; // No modulation
+  UCB0CTL1 &= ~UCSWRST;
 
   serial_init(9600);                        // Initialize Serial Comms
   __eint();                                 // Enable Global Interrupts
@@ -278,6 +286,7 @@ int main(void)
  *      PROGRAM LOOP
  *
  ******/
+  volatile char received_ch = 0;
   for (;;) {
     int j = 0;                              // Char array counter
     memset(cmd_line, 0, 90);                // Init empty array
@@ -315,42 +324,14 @@ int main(void)
       default:
         break;
     }
-    uint32_t result;                           // 32 bit result
-    uint8_t  counter;                          // Counter for loop
-    result =0;
-    P2OUT &= ~BIT7;
-    P2OUT |= BIT0; // | BIT7;
-    /*cio_printf("Line 1\n");
-    while (!(IFG2 & UCB0TXIFG)); // USCI_B0 TX buffer ready?
-    cio_printf("Line 2\n");
-    UCB0TXBUF = 0xAA;		 // Send 0xAA over SPI to Slave
-    cio_printf("Line 3\n");
-    P2OUT &= ~BIT7;
-    //P2OUT &= ~BIT0;
-    while (!(IFG2 & UCB0TXIFG));	 // USCI_B0 RX received?
-    cio_printf("Line 4\n");
-    cio_printf(">%i<",UCB0RXBUF); // Store recieved data
-    P2OUT |= BIT7;		 // Unselect Device
-    */
-    cio_printf("Line 1\n");
-    for( counter = 0; counter < 4; counter++ ) // Read four bytes
-{
-  IFG2 &= ~UCB0RXIFG;                      // Clear pending RX flag
-  UCB0TXBUF = 0x00;                        // Send dummy byte
-  cio_printf("Line 2\n");
-  while( !(IFG2 & UCB0RXIFG) );            // Wait for RX flag to be set
-  result |= UCB0RXBUF;                     // Store received byte
 
-  if( counter <= 2 )                       // For byte 0, 1 and 2
-  {
-    result <<= 8;                          // Shift result left by eight
-  }
-}
-
-P2OUT |= BIT7;                             // Unselect device
-cio_printf("Line 3\n");
-    cio_printf(">%i<\r\n", result);
-    cio_print("\n");               // Delimit Result
+    P2OUT &= ~BIT7;
+    while (!(IFG2 & UCB0TXIFG));
+    UCB0TXBUF = 0xAA;
+    while (!(IFG2 & UCB0RXIFG));
+    received_ch = UCB0RXBUF;
+    cio_printf("%i\n\n", received_ch);
+    P2OUT |= (BIT7);
   }
 
   return 0;
