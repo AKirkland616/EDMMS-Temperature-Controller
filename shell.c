@@ -13,6 +13,8 @@
  ******/
 
 char cmd[90] = {0};
+uint8_t result[4];                           // 32 bit result
+uint8_t  counter;                          // Counter for loop
 
 /******
  *
@@ -250,18 +252,27 @@ int main(void)
   WDTCTL   = WDTPW | WDTHOLD;               // Disable Watchdog
   BCSCTL1  = CALBC1_1MHZ;                   // Run @ 1MHz
   DCOCTL   = CALDCO_1MHZ;
+  
 
   /* GPIO ***********************************/
-//  P1DIR  = ~BIT3;
+  P1DIR  = ~BIT3;
 //  P1DIR |= BIT5;
-//  P1OUT = BIT5;
+  P1OUT = BIT3;
   P1SEL = BIT5 | BIT6 | BIT7;
   P1SEL2 = BIT5 | BIT6 | BIT7;
 
-//  P1REN = BIT3;
+  P1REN = BIT3;
 //  P1IE  = BIT3;
-//  P1IES = BIT3;
-//  P1IFG = 0;
+  P1IES = BIT3;
+  P1IFG &= ~BIT3;
+  
+  //TA0CTL   = TASSEL_2 | MC_1 | ID_3;
+  //TA0CCR0  = 50000;
+  //TA0CCTL0 = CCIE;
+  TA1CCR0 = 15360-1;
+  TA1CTL = TASSEL_2 | MC_1 | ID_3;
+  
+  TA1CCTL0 = CCIE;
 
   P2DIR = BIT0 | BIT7;
   P2OUT = BIT7;// BIT0 | BIT7;
@@ -275,7 +286,6 @@ int main(void)
   UCB0CTL1 |= UCSSEL_2; // smclk 
   UCB0BR0 |= 0x02;
   UCB0BR1 = 0;
-  //UCB0MCTL = 0; // No modulation
   UCB0CTL1 &= ~UCSWRST;
 
   serial_init(9600);                        // Initialize Serial Comms
@@ -286,8 +296,8 @@ int main(void)
  *      PROGRAM LOOP
  *
  ******/
-  uint32_t result;                           // 32 bit result
-  uint8_t  counter;                          // Counter for loop
+  //uint8_t result[4];                           // 32 bit result
+  //uint8_t  counter;                          // Counter for loop
   
   for (;;) {
     int j = 0;                              // Char array counter
@@ -326,23 +336,22 @@ int main(void)
       default:
         break;
     }
+    /*
+   P2OUT &= ~BIT7;
    for( counter = 0; counter < 4; counter++ ) // Read four bytes
    {
-       P2OUT &= ~BIT7;
        while (!(IFG2 & UCB0TXIFG));
        UCB0TXBUF = 0xAA;
        while (!(IFG2 & UCB0RXIFG));
-       result |= UCB0RXBUF;
-    
-    
-       if( counter <= 2 )                       // For byte 0, 1 and 2
-       {   
-          result <<= 8;                          // Shift result left by eight
-       }
+       result[counter] = UCB0RXBUF;
    }
-   cio_printf("%i\n\n", result);
-   result =0;
-   P2OUT |= (BIT7);
+   cio_printf("\n>%u<\n\n\n>%u<\n\n\n>%u<\n\n\n>%u<\n\n", result[0],result[1],result[2],result[3]);
+   cio_printf("\n>%x<\n\n\n>%x<\n\n\n>%x<\n\n\n>%x<\n\n", result[0],result[1],result[2],result[3]);
+   result[0] = 0;
+   result[1] = 0;
+   result[2] = 0;
+   result[3] = 0;
+   P2OUT |= (BIT7); */
   }
 
   return 0;
@@ -353,6 +362,38 @@ int main(void)
  *      INTERRUPTS
  *
  ******/
+ /*
+ // Timer A0 interrupt service routine 
+#pragma vector=TIMER0_A0_VECTOR
+__interrupt void timer0_isr(void)
+{   
+   cio_printf("Made it here first!");
+   
+} */
+
+#pragma vector=TIMER1_A0_VECTOR
+__interrupt void timer1_isr(void)
+{
+  // TIMER 1 ISR
+  cio_printf("Made it here!");
+	
+  P2OUT &= ~BIT7;
+   for( counter = 0; counter < 4; counter++ ) // Read four bytes
+   {
+       while (!(IFG2 & UCB0TXIFG));
+       UCB0TXBUF = 0xAA;
+       while (!(IFG2 & UCB0RXIFG));
+       result[counter] = UCB0RXBUF;
+   }
+   cio_printf("\n>%u<\n\n\n>%u<\n\n\n>%u<\n\n\n>%u<\n\n", result[0],result[1],result[2],result[3]);
+   cio_printf("\n>%x<\n\n\n>%x<\n\n\n>%x<\n\n\n>%x<\n\n", result[0],result[1],result[2],result[3]);
+   result[0] = 0;
+   result[1] = 0;
+   result[2] = 0;
+   result[3] = 0;
+   P2OUT |= (BIT7); 
+}
+ 
 #pragma vector=PORT1_VECTOR
 __interrupt void Port1_ISR (void)
 {
