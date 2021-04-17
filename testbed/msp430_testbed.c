@@ -23,8 +23,17 @@
 //                              P2.0 I/O        + Input (14)
 // =========================================================================================================
 
-#include "stdint.h"
-#include "spi.h"
+#ifndef __MSP430G2553__
+#define __MSP430G2553__
+#endif
+
+#include <stdint.h>
+
+#include <msp430.h>
+#include <libemb/serial/serial.h>
+#include <libemb/conio/conio.h>
+#include <libemb/shell/shell.h>
+#include <ctype.h>
 
 volatile uint32_t received_data = 0;
 volatile int temperature = 0;
@@ -65,7 +74,7 @@ int main(void)
     /* Timer A1 Enable ********************************/
 
     TA1CTL = TASSEL_2 | ID_3 | MC_1;    // Enable Timer A1
-    
+
     TA1CCR0 = 15625;                    // Rate = ( (SMCLK / ID_X) / TA1CCR0 ) Hz,
                                         // run at 8Hz
     
