@@ -23,7 +23,6 @@
 #include "msp430_shell.h"
 
 volatile uint32_t received_data = 0;
-volatile int temperature = 0;
 
 int main(void)
 {
@@ -82,13 +81,21 @@ int main(void)
     serial_init(9600);
 
     // Enable global interrupts
-    __bis_SR_register(LPM1_bits|GIE);
+    // __bis_SR_register(LPM1_bits|GIE);
+    __eint();
+
+    /* Program loop ***********************************/
+
+    for (;;) 
+    {
+        shell_get_args();
+    }
 
     return 0;
 }
 
 // ====================================================================================
-// INTERRUPTS
+// INTERRUPT SERVICE ROUTINES
 // ====================================================================================
 
 #pragma vector=TIMER1_A0_VECTOR
@@ -108,11 +115,13 @@ __interrupt void timer1_ISR(void)
         }
     }
 
-    temperature = ((received_data & 0xFFFC0000) >> 18) >> 2;    // MAX31855 has a resolution of 0.25°C
+    // temperature = ((received_data & 0xFFFC0000) >> 18) >> 2;    // MAX31855 has a resolution of 0.25°C
+    set_temperature( ((received_data & 0xFFFC0000) >> 18) >> 2 );
+
     received_data = 0;
 
     P2OUT |= (BIT7); 
-}
+} 
 
 /**
  * ISR that prints the current temperature read from the MAX31855 when the button (P1.3)
@@ -121,13 +130,11 @@ __interrupt void timer1_ISR(void)
 # pragma vector=PORT1_VECTOR
 __interrupt void button_ISR(void)
 {
-    cio_printf("%s: %i\n\r", "Temperature: ", temperature);
-
-    /* button debounce routine ************************/
+    /* Button debounce routine ************************/
 
 	while (!(BIT3 & P1IN)) {}       // is finger off of button yet?
 	__delay_cycles(32000);          // wait 32ms
 	P1IFG &= ~BIT3;                 // clear interrupt flag
 
-    // running = 0;
+    set_running(0);
 }

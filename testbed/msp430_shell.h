@@ -150,6 +150,24 @@ int shell_cmd_show(shell_cmd_args *args);
  */
 int shell_process(char *cmd_line);
 
+/**
+ * Continually get input from the user; designed to run in the main
+ * MSP430 program loop.
+ */
+void shell_get_args();
+
+/**
+ * Set the running state. TEST METHOD
+ */
+void set_running();
+
+/**
+ * Set the temperature. TEST METHOD
+ * 
+ * @param val The temperature read from the MAX31855.
+ */ 
+void set_temperature(int val);
+
 /* Globals ****************************************/
 
 #endif

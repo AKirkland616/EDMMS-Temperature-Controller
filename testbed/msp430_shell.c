@@ -91,6 +91,8 @@ PID_t PID;
 char cmd_line[90];
 int running = 0;
 
+volatile int temperature = 0;
+
 /* Header Implementation **************************/
 
 int shell_cmd_help(shell_cmd_args *args)
@@ -101,6 +103,8 @@ int shell_cmd_help(shell_cmd_args *args)
     {
         cio_printf("%s: %s\n\r", my_shell_cmds.cmds[k].cmd, my_shell_cmds.cmds[k].desc);
     }
+
+    cio_printf("%s: %i\n\r", "Temperature: ", temperature);
 
     return 0;
 }
@@ -315,6 +319,61 @@ int shell_cmd_show(shell_cmd_args *args)
 int shell_process(char *cmd_line)
 {
     return shell_process_cmds(&my_shell_cmds, cmd_line);
+}
+
+void shell_get_args()
+{
+    int j = 0;                              // Char array counter
+    memset(cmd_line, 0, 90);                // Init empty array
+
+    cio_print("$ ");                        // Display prompt
+    char c = cio_getc();                    // Wait for a character
+    while(c != '\r')                        // until return sent then ...
+    {                      
+        if(c == 0x08)                       //  was it the delete key?
+        {                       
+            if(j != 0)                      //  cursor NOT at start?
+            {                        
+                cmd_line[--j] = 0;          //  delete key logic
+                cio_printc(0x08); 
+                cio_printc(' '); 
+                cio_printc(0x08);
+            }
+        } 
+        else                                // otherwise ...
+        {                              
+            cmd_line[j++] = c;
+            cio_printc(c);                  //  echo received char
+        }
+        c = cio_getc();                     // Wait for another
+    }
+
+    cio_print("\n\n\r");                    // Delimit command result
+
+    switch(shell_process(cmd_line))         // Execute specified shell command
+    {                                       // and handle any errors
+        case SHELL_PROCESS_ERR_CMD_UNKN:
+            cio_print("ERROR, unknown command given\n\r");
+            break;
+        case SHELL_PROCESS_ERR_ARGS_LEN:
+            cio_print("ERROR, an argument is too lengthy\n\r");
+            break;
+        case SHELL_PROCESS_ERR_ARGS_MAX:
+            cio_print("ERROR, too many arguments given\n\r");
+            break;
+        default:
+            break;
+    }
+}
+
+void set_running(int val)
+{
+    running = val;
+}
+
+void set_temperature(int val)
+{
+    temperature = val;
 }
 
 /* Shell input validation *************************/
