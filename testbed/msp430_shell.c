@@ -104,7 +104,7 @@ int shell_cmd_help(shell_cmd_args *args)
         cio_printf("%s: %s\n\r", my_shell_cmds.cmds[k].cmd, my_shell_cmds.cmds[k].desc);
     }
 
-    cio_printf("%s: %i\n\r", "Temperature: ", temperature);
+    cio_printf("%s: %i degrees Celcius\n\r", "Temperature", temperature);
 
     return 0;
 }
