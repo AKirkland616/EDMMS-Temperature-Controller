@@ -1,7 +1,7 @@
 # Project name
-SOURCE          = msp430_testbed.c
+SOURCE          = msp430_testbed.c msp430_shell.c
 # Get base name so we can create .elf file
-NAME            = $(basename $(SOURCE))
+NAME            = msp430_testbed
 # MSP430 MCU to compile for
 CPU             = msp430g2553
 # Optimisation level

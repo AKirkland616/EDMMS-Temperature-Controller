@@ -7,9 +7,6 @@
 //                  (4/14/2021) It regularly reads from a MAX31855 via a SPI interface and prints out the
 //                  measured temperature when trigging a button interrupt on P1.3.
 //
-// Issue:           (4/11/2021) Cannot read numerical values from MAX31855.
-//                  Only getting 0
-//
 // =========================================================================================================
 // Wiring
 //
@@ -23,17 +20,7 @@
 //                              P2.0 I/O        + Input (14)
 // =========================================================================================================
 
-#ifndef __MSP430G2553__
-#define __MSP430G2553__
-#endif
-
-#include <stdint.h>
-
-#include <msp430.h>
-#include <libemb/serial/serial.h>
-#include <libemb/conio/conio.h>
-#include <libemb/shell/shell.h>
-#include <ctype.h>
+#include "msp430_shell.h"
 
 volatile uint32_t received_data = 0;
 volatile int temperature = 0;
@@ -105,7 +92,7 @@ int main(void)
 // ====================================================================================
 
 #pragma vector=TIMER1_A0_VECTOR
-__interrupt void timer1_isr(void)
+__interrupt void timer1_ISR(void)
 {
     P2OUT &= ~BIT7;
     for (uint16_t counter = 0; counter < 4; counter++ )         // Read four bytes
@@ -132,12 +119,15 @@ __interrupt void timer1_isr(void)
  * is pressed.
  */
 # pragma vector=PORT1_VECTOR
-__interrupt void button(void)
+__interrupt void button_ISR(void)
 {
     cio_printf("%s: %i\n\r", "Temperature: ", temperature);
 
     /* button debounce routine ************************/
+
 	while (!(BIT3 & P1IN)) {}       // is finger off of button yet?
 	__delay_cycles(32000);          // wait 32ms
 	P1IFG &= ~BIT3;                 // clear interrupt flag
+
+    // running = 0;
 }
