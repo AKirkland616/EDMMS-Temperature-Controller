@@ -1,8 +1,7 @@
 # Project name
-SOURCE          = shell.c
-ADDITIONAL      =
+SOURCE          = msp430_testbed.c msp430_shell.c
 # Get base name so we can create .elf file
-NAME            = $(basename $(SOURCE))
+NAME            = msp430_testbed
 # MSP430 MCU to compile for
 CPU             = msp430g2553
 # Optimisation level
@@ -12,15 +11,11 @@ CFLAGS          = -mmcu=$(CPU) $(OPTIMIZATION) -std=c99 -Wall -g -fomit-frame-po
 # Libemb library link flags
 LIBEMB          = -lshell -lconio -lserial
 # MSP430 driver necessary to flash to the board
-DRIVER		= tilib
+DRIVER			= tilib
 
 # Build and link executable
-$(NAME).elf: $(SOURCE) $(ADDITIONAL)
-ifeq (,$(findstring libemb,$(shell cat $(SOURCE))))
-	msp430-gcc $(CFLAGS) -o $@ $(SOURCE) $(ADDITIONAL)
-else
-	msp430-gcc $(CFLAGS) -o $@ $(SOURCE) $(ADDITIONAL) $(LIBEMB)
-endif
+$(NAME).elf: $(SOURCE)
+	msp430-gcc $(CFLAGS) -o $@ $(SOURCE) $(LIBEMB)
 	msp430-objdump -D $(NAME).elf > $(NAME).hex
 
 # Flash to board with mspdebug
@@ -38,4 +33,3 @@ clean:
 # Remote debug board
 debug: $(NAME).elf
 	( mspdebug $(DRIVER) "gdb" 1>/dev/null & ); msp430-gdb $(NAME).elf -ex "target remote :2000"
-
