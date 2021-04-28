@@ -1,0 +1,496 @@
+% Page formatting
+\documentclass[11pt]{article}
+\usepackage{algorithm,algorithmic,amsmath,amsgen,amstext,amssymb,amsthm,amsbsy,amsopn,amsfonts,esint,hyperref}
+\usepackage{bm}
+\usepackage{tikz}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\pagestyle{plain}
+
+\usetikzlibrary{shapes,arrows.meta,decorations.markings,positioning}
+
+\setlength{\textwidth}{6.5 in}
+\setlength{\textheight}{9 truein}
+\setlength{\evensidemargin}{ 0 in}
+\setlength{\oddsidemargin}{0 in}
+\setlength{\topmargin}{-0.5 in}
+\setlength{\parskip} {0.125 in}
+\setlength{\parindent} {0 in}
+
+\renewcommand{\familydefault}{\sfdefault}
+
+% Remappings
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\renewcommand\qedsymbol{ \blacksquare }
+\newcommand{\arrowtext}[1]{\scriptstyle{\boldsymbol{#1}}}
+
+% Theorems
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{lemma}[theorem]{Lemma}
+
+% Definitions
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+
+% Beginning of document
+\begin{document}
+\noindent
+\begin{minipage}{1.00\textwidth}
+    \begin{flushleft}
+        % title
+        \textbf{\huge PID Overview} \\[1ex]
+        % author
+        \Large Jeremy Evans
+    \end{flushleft}
+\noindent\rule{\textwidth}{1pt}
+\end{minipage}
+
+% tikz colors
+\definecolor{wmugold}{RGB}{241,197,0}
+
+% == tikzset ==
+\tikzset{
+    block/.style={
+        draw,
+        fill=wmugold,
+        rectangle,
+        minimum height=3em,
+        minimum width=7em,
+    },  
+    sum/.style={
+        draw,
+        fill=wmugold,
+        circle,
+        node distance=1cm
+    },  
+    input/.style={coordinate},
+    output/.style={coordinate},
+    blank/.style={coordinate},
+    pinstyle/.style={
+        pin edge={to-,thin,black}
+    },  
+    big_arrow/.style={
+        decoration={markings,mark=at position 1 with {\arrow[scale=2,>=latex]{>}}},
+        postaction={decorate},
+        shorten >=0.4pt
+    },  
+}
+
+% =======================================================================================================================
+% body
+
+% section: Introduction
+\section{Introduction}
+
+This document introduces the theory of PID control and its programmatic implementation. We will define
+what a PID controller is, what its purpose is, loop tuning, and its implementation in software. It is meant to
+serve as an aid for designing the programming logic of a PID controller deployable to an MSP430 MCU.
+
+A working understanding of the Laplace and Z transforms would be helpful in reading this document (if only to 
+verify the correctness of the implementation). Nevertheless, we will document the derivation in full (though we may
+omit the calculus and algebra in the final progress report).
+
+% section: Overview
+\section{Overview}
+
+A PID controller (proportional-integral-derivative controller) is a feedback control loop mechanism that receives a desired  setpoint 
+$r(t)$ as input and outputs a \textit{process variable} (PV), denoted as $y(t)$, which is then fed back into the system
+as input. It continuously calculates an  error value $e(t)$ as the difference between the desired setpoint and the process variable
+and applies a correction based on  proportional $(P)$, integral $(I)$, and derivative $(D)$ terms, which are summed
+together to make up the  control variable, $u(t)$ affecting the value of the process variable, hence the name.  
+In applying this correction over time, it attempts to stabilize the output, i.e., eliminate the oscillation of the error value
+(or achieve marginal stability, or bounded oscillation, though specifications vary between applications).
+
+Corrections are achieved by multiplying the $P$, $I$, and $D$ terms by constants $K_{p}$, $K_{i}$, and $K_{d}$ respectively, each chosen through
+a process known as \textit{loop tuning.} Improperly chosen constants would result in the error value diverging (with or without oscillation),
+whereas properly chosen constants would have the desired effect of the error value converging to zero (or oscillating within 
+an acceptable bounds).
+
+\newpage
+
+% subsection: Mathematical Definition
+\subsection{Mathematical Definition}
+
+The parallel form of PID control is mathematically defined as:
+
+\begin{equation} \label{eq1}
+    \boxed{
+        u(t) = K_{p}e(t) + K_{i}\int_{0}^{t}e(\tau)d\tau + K_{d}\frac{de(t)}{dt}
+    }
+\end{equation}
+
+where
+
+\begin{itemize}
+    \item $u(t)$ is the \textit{control variable}, the parameter that is controlled,
+    \item $K_{p} \in \R \geq 0$ is the \textit{proportional gain,}
+    \item $K_{i} \in \R \geq 0$ is the \textit{integral gain,}
+    \item $K_{d} \in \R \geq 0$ is the \textit{derivative gain,}
+    \item $e(t) = r(t) - y(t)$ is the error ($r(t) = SP$ is the \textit{setpoint,} $y(t) = PV$ is the \textit{process variable}),
+    \item $t$ is the \textit{instantaneous time} (i.e., the current time),
+    \item $\tau \in \R$ are measurements of time in the range $[0, t]$.
+\end{itemize}
+
+% subsection: PID Block Diagram
+\subsection{PID Block Diagram}
+
+The PID algorithm can be represented by the following block diagram:
+
+% PID block diagram
+\begin{tikzpicture}[auto]
+    % nodes: input
+    \node [input, name=input]{}; 
+    \node [sum, right = 1.3cm of input] (sum_1) {$\Sigma$};
+    \node [blank, name = root, right = 1.7cm of sum_1]{};
+
+    % nodes: PID
+    \node [block, text width = 7em, right = 1cm of root] (pid_integral) {\textbf{I}: $K_{i}\int_{0}^{t}e(\tau)d\tau$};
+    \node [block, text width = 7em, above = of pid_integral] (pid_proportional) {\textbf{P}: $K_{p}e(t)$};
+    \node [block, text width = 7em, below = of pid_integral] (pid_derivative) {\textbf{D}: $K_{d}\frac{de(t)}{dt}$};
+
+    % nodes: Output
+    \node [sum, right = 2cm of pid_integral] (sum_2) {$\Sigma$}; 
+    \node [block, right = 1.5cm of sum_2] (plant_process) {Plant Process};
+    \node [blank, name=feedback, right = 0.2cm of plant_process]{};
+    \node [output, name=output, right = 1.60cm of feedback]{};
+    \node [block, below = of pid_derivative] (sensor) {Sensor};
+
+    % arrows: input -> PID
+    \draw [big_arrow] (input) -- node [above]{$r(t)$} node [below,pos=0.90] {$\arrowtext{+}$}(sum_1);
+    \draw [-] (sum_1) -- node {$e(t)$}(root);
+    \draw [big_arrow] (root) -- (pid_integral);
+    \draw [big_arrow] (root) |- (pid_proportional);
+    \draw [big_arrow] (root) |- (pid_derivative);
+
+    % arrows: PID -> PV
+    \draw [big_arrow] (pid_integral) -- node [pos=0.90]{$\arrowtext{+}$}(sum_2);
+    \draw [big_arrow] (pid_proportional) -| node [pos=0.90]{$\arrowtext{+}$} (sum_2);
+    \draw [big_arrow] (pid_derivative) -| node [pos=0.90]{$\arrowtext{+}$}(sum_2);
+    \draw [big_arrow] (sum_2) -- node{$u(t)$}(plant_process);
+
+    % arrows: p(v) -> r(t)
+    \draw [-] (plant_process) -- (feedback);
+    \draw [-] (feedback) |- (sensor);
+    \draw [big_arrow] (sensor) -| node [below,pos=0.30] {measurement} node [pos=0.96]{$\arrowtext{-}$}(sum_1);
+    \draw [big_arrow] (feedback) -- node {$y(t)$}(output);
+\end{tikzpicture}
+
+Represented in a high-level model of a heat treatment furnace, $r(t),$ the setpoint, would be the desired
+furnace temperature; $u(t),$ the control variable, would be the gas flow rate; and $y(t),$ the process
+variable, would be the measured furnace temperature.
+
+% subsection: PID Terms
+\subsection{PID Terms}
+
+% subsubsection: Proportional
+\subsubsection{Proportional}
+
+Given by $P(t) := K_{p}e(t),$ the proportional term produces an output that is proportional to the current error value $e(t);$ the greater
+the error value, the greater the control output. This output is multiplied by a gain factor $K_{p} \in \R \geq 0$ that determines how responsive
+the controller should be with a given error-value. Large values of $K_{p}$ result in a large change in the output for a given change in the
+error. However, exceptionally large values may result in the output \textit{overshooting} the setpoint (exceeding the value of the setpoint)
+and, in the worst case, destabilizing the system whereupon the error rate diverges.
+
+One caveat to the proportional term is that a non-zero error is required for it to have any effect; if the error is zero, it will not 
+produce a response. Because of this, it generally operates with a \textit{steady-state error,} which is the difference between the desired 
+final output and the actual one.
+
+% subsubsection: Integral
+\subsubsection{Integral}
+
+Given by $I(t) := K_{i}\int_{0}^{t}e(\tau)d\tau,$ the integral term's output is proportional to both the magnitude and duration
+of the error; its integral is the sum of the instantaneous error over time and represents the accumulated offset. Because it sums
+the error over time, the integral response will continually increase over time so long as the error is non-zero, effectively driving
+the steady-state error inherent in the proportional term to zero.
+
+If the setpoint suddenly changes to a drastic degree or if the measured process variable jumps significantly, \textit{integral windup}
+can occur wherein the plant process of a PID controller can saturate; that is, reach its physical limit (e.g., drive a valve to be fully
+open or closed). In this case, no physical change in the system can affect the integral term; it will continue to grow without bounds.
+
+Several solutions to this problem are:
+
+\begin{itemize}
+    \item Increase the setpoint incrementally (in a suitable ramp)
+    \item Initialize the controller integral to a desired value (e.g., before the problem occurs)
+    \item Disable the integral function until the process variable has entered the controllable region
+\end{itemize}
+
+% subsubsection: Derivative
+\subsubsection{Derivative}
+
+Given by $D(t) := K_{d}\frac{de(t)}{dt},$ the output of the derivative term is proportional to the rate of change of the error value
+and is intended to decrease the rate at which the error increases. Large values of $K_{d}$ correlate to large responses to changes in the
+error. However, it is sensitive to noise in the process variable (moreso for large values of $K_{d}$) and is often multiplied by a low-pass
+filter to mitigate the high frequency gain and noise.
+
+% section: Derivation
+\section{Derivation}
+
+To implement the PID algorithm in software, we need to transform the equation into a form that can be represented in code. One way to do
+this is to derive the transfer function of the PID algorithm in the \textit{s-domain} (where output is viewed with respect to frequency
+rather than time), and discretize the transfer function using what is called the \textit{bilinear transform} or \textit{Tustin's method}.
+By discretizing the transfer function, we can arrive at a linear difference equation (also known as a recurrence relation), which
+can easily be implemented in code.
+
+% subsection: PID Transfer Function
+\subsection{PID Transfer Function}
+
+The Laplace transform of a function $f(t)$, defined for all real numbers $t \geq 0$, is the function $F(s)$, which is a unilateral transform defined by 
+\begin{equation} \label{eq2}
+    \boxed{
+        F(s) := \mathcal{L}\{f(t)\} = \int_{0}^{\infty}f(t)e^{-st}dt
+    }
+\end{equation}
+
+where $s = \sigma + i\omega$ (with real numbers $\sigma$ and $\omega$) is a complex number denoting frequency.
+
+Divide \textbf{eq.~\ref{eq1}} into three functions $P(t),$ $I(t),$ and $D(t),$ where
+
+\begin{align*}
+\begin{split}
+    P(t) &:= K_{p}e(t) \\
+    I(t) &:= K_{i}\int_{0}^{t}e(\tau)d\tau \\
+    D(t) &:= K_{d}\frac{de(t)}{dt}
+\end{split}
+\end{align*}
+
+Recall that the integral of a real-valued function $f(t)$ from $t = 0$ to $t = \infty$ is equal to evaluating the integral
+from $0$ to some number $a \in \R$ that approaches $\infty$ from the left:
+
+\begin{align*}
+\begin{split}
+    \int_{0}^{\infty}f(t)dt = \lim_{a\to\infty^{-}}\left(\int_{0}^{a}f(t)dt\right)
+\end{split}
+\end{align*}
+
+
+With that, we can apply the Laplace transform to $P$, $I$, and $D$.
+
+% subsubsection: Laplace: Proportional
+\subsubsection{Laplace: Proportional}
+
+\begin{align*}
+    \begin{split}
+        P(s) &:= \mathcal{L}\{P(t)\} \\\\
+             &= \int_{0}^{\infty} K_{p}e(t)e^{-st}dt \\\\
+             &= K_{p}\int_{0}^{\infty}e(t)e^{-st}dt \\\\
+             &= K_{p}\mathcal{L}\{e(t)\} \\\\
+             &= K_{p}E(s)
+    \end{split}
+\end{align*}
+
+% subsubsection: Laplace: Integral
+\subsubsection{Laplace: Integral}
+
+\begin{align*}
+    \begin{split}
+        I(s) &:= \mathcal{L}\{I(t)\} \\\\
+             &= \int_{0}^{\infty}\left(K_{i}\int_{0}^{t}e(\tau)d\tau\right)e^{-st}dt \\\\
+             &= K_{i}\int_{0}^{\infty}e^{-st}\int_{0}^{t}e(\tau)d\tau dt \\\\
+             &= \left.K_{i}\left(\int_{0}^{t}e(\tau)d\tau \left(\frac{e^{-st}}{-s}\right)\right)\right|_{0}^{\infty} - \int_{0}^{\infty}e(t)\left(\frac{e^{-st}}{-s}\right)dt; \text{(integration by parts)} \\\\
+             &= K_{i}\left(0 - 0 + \frac{1}{s}\int_{0}^{\infty}e(t)e^{-st}\right) \\\\
+             &= K_{i}\left(\frac{\mathcal{L}\{e(t)\}}{s}\right) \\\\
+             &= \frac{K_{i}E(s)}{s} 
+    \end{split}
+\end{align*}
+
+% subsubsection: Laplace: Derivative
+\subsubsection{Laplace: Derivative}
+
+\begin{align*}
+\begin{split}
+    D(s) &:= \mathcal{L}\{D(t)\} \\\\
+         &= \int_{0}^{\infty}K_{d}\frac{de(t)}{dt}e^{-st}dt \\\\
+         &= K_{d} \int_{0}^{\infty}e^{-st}\frac{de(t)}{dt}dt \\\\
+         &= K_{d}\left(e^{-st}e(t)\Bigr\rvert_{0}^{\infty} - \int_{0}^{\infty}-se^{st}e(t)dt\right) \\\\
+         &= K_{d}\left(0 - e(0) + s \int_{0}^{\infty}e^{-st}e(t)dt\right) \\\\
+         &= K_{d}\left(s\mathcal{L}\{e(t)\} - e(0)\right) \\\\
+         &= K_{d}sE(s); \text{($e(0) = 0$, since no signal is supplied at $t = 0$).}
+\end{split}
+\end{align*}
+
+$D(s)$ amplifies higher frequency measurements (or proces noise), resulting in large amounts of change in the output. To reduce the term's responsiveness to
+high frequency noise, is it common to filter the measurements with a low-pass filter. One such implementation is to replace $D(t)$ with the following:
+
+\[ D(t) = \frac{K_{d}sE(s)}{s\tau + 1},\] 
+
+where $\tau \in \R$ is a relatively short contant of time.
+
+% subsubsection: Laplace: u(t)
+\subsubsection{Laplace: u(t)}
+
+Applying the Laplace transform to \textbf{eq.\ref{eq1}} gives:
+
+\begin{align*}
+\begin{split}
+    U(s) &= \mathcal{L}\{u(t)\} \\\\
+         &= \mathcal{L}\{P(t) + I(t) + D(t)\} \\\\
+         &= K_{p}E(s) + \frac{K_{i}E(s)}{s} + \frac{K_{d}sE(s)}{s\tau + 1}\\\\
+         &= \left(K_{p} + \frac{K_{i}}{s} + \frac{K_{d}s}{s\tau + 1}\right)E(s)
+\end{split}
+\end{align*}
+
+Dividing both sides by $E(s)$ gives the \textit{transfer function} $H_{a}(s)$, which in this case is the linear mapping of the Laplace transform of
+the error signal, $E(s) = \mathcal{L}\{e(t)\}$, to the Laplace transform of the control variable, $U(s) = \mathcal{L}\{u(t)\}$ (with the filtered
+derivative term):
+
+\begin{equation} \label{eq3}
+    \boxed{
+        H_{a}(s) := \frac{U(s)}{E(s)} = K_{p} + \frac{K_{i}}{s} + \frac{K_{d}s}{s\tau + 1} 
+    }
+\end{equation}
+
+% subsection: Bilinear Transform
+\subsection{Bilinear Transform}
+
+Before we derive a difference equation, we would first need to discretize the transfer function $H_{a}(s)$ in \textbf{eq.\ref{eq3}.} For our purposes, we will use
+the bilinear transformation (also known as Tustin's method) for this, as it preserves stability by mapping the left half of the s-plane to the interior
+of the unit circle in the z-domain. Furthermore, it avoids aliasing in the frequency response by mapping the entire imaginary axis fo the s-plane to the
+unit circle.
+
+In practice, this is done by substituting $s$ in $H_{a}(s)$ with the following polynomial:
+
+\begin{equation} \label{eq4}
+    \boxed{ 
+    H(z) := \frac{U(z)}{E(z)} = H_{a}(s) \biggr\rvert_{s=\frac{2}{T}\frac{z-1}{z+1}} = H_{a}\left(\frac{2}{T}\frac{z-1}{z+1}\right)
+    }
+\end{equation}
+
+As before, we divide \textbf{eq.\ref{eq3}} into three functions $P_{a}(s)$, $I_{a}(s)$, and $D_{a}(s)$, where:
+
+\begin{align*}
+\begin{split}
+    P_{a}(s) &:= K_{p} \\
+    I_{a}(s) &:= \frac{K_{i}}{s} \\
+    D_{a}(s) &:= \frac{K_{d}s}{s\tau + 1} = \frac{K_{d}}{\tau + s^{-1}}
+\end{split}
+\end{align*}
+
+Applying \textbf{eq.\ref{eq4}} to $P_{a}(s)$, $I_{a}(s)$, and $D_{a}(s)$ gives the transfer function $H(z)$.
+
+% subsubsection: Bilinear: Proportional
+\subsubsection{Bilinear: Proportional}
+
+\begin{align*}
+\begin{split}
+    P_{b}(z) &:= P_{a}\left(\frac{2}{T}\frac{z-1}{z+1}\right) \\
+             &= K_{p}
+\end{split}
+\end{align*}
+
+% subsubsection: Bilinear: Integral
+\subsubsection{Bilinear: Integral}
+
+\begin{align*}
+\begin{split}
+    I_{b}(z) &:= I_{a}\left(\frac{2}{T}\frac{z-1}{z+1}\right) \\\\
+             &= K_{i}\left(\frac{T}{2}\frac{z+1}{z-1}\right) \\\\
+             &= K_{i}\left(\frac{T}{2}\frac{1+z^{-1}}{1-z^{-1}}\right)
+\end{split}
+\end{align*}
+
+% subsubsection: Bilinear: Derivative
+\subsubsection{Bilinear: Derivative}
+
+\begin{align*}
+\begin{split}
+    D_{b}(z) &:= D_{a}\left(\frac{2}{T}\frac{z-1}{z+1}\right) \\\\
+             &= K_{d}\left(\frac{1}{\tau + \frac{T}{2}\frac{z+1}{z-1}}\right) \\\\
+             &= K_{d}\left(\frac{1}{\frac{2\tau (z-1) + T(z + 1)}{2(z-1)}}\right) \\\\
+             &= K_{d}\left(\frac{2(z-1)}{2\tau (z-1) + T(z+1)}\right) \\\\
+             &= K_{d}\left(\frac{2(1-z^{-1})}{2\tau (1-z^{-1}) + T(1+z^{-1})}\right) \\\\
+\end{split}
+\end{align*}
+
+% subsubsection: Bilinear: Discrete Transfer Function
+\subsubsection{Bilinear: Discrete Transfer Function}
+
+Summing $P_{b}(z)$, $I_{b}(z)$, and $D_{b}(z)$ renders the transfer function for the PID algorithm in the z domain:
+
+\begin{equation} \label{eq5}
+\boxed{
+    H_{b}(z) := \frac{U(z)}{E(z)} = P_{b}(z) + I_{b}(z) + D_{b}(z)
+}
+\end{equation}
+
+% subsection: Difference Equation
+\subsection{Difference Equation}
+
+Converting \textbf{eq.\ref{eq5}} to an equivalent difference equation $u[n], n \in Z$ in the time domain can be accomplished by using the \textit{inverse
+Z-transform}, denoted by $u[n] := \mathcal{Z}^{-1}\{U(z)\}$. To do this, we utilize a property of the Z-transform where taking the inverse
+Z-transform of a function $X(z)$ multiplied by $z^{-k}$, $k > 0$, is equivalent to a shift by $k$ samples in the time domain, i.e.,
+$\mathcal{Z}^{-1}\{z^{-1}X(z)\} = x[n-k].$
+
+By implication, given two functions $Y(z)$ and $X(z)$, we can make the following observation (which will not be proven in this document in
+the interest of brevity):
+\begin{align*}
+\begin{split}
+    Y(z) = z^{-1}X(z) \Rightarrow y[n] = x[n-1].
+\end{split}
+\end{align*}
+
+By multiplying both sides of \textbf{eq.\ref{eq5}} by $E(z)$ and taking the inverse Z-transform of the result, we get the following difference equation denoting
+a discretized form of the PID algorithm:
+
+\begin{equation} \label{eq6}
+\boxed{
+    u[n] := p[n] + i[n] + d[n],
+}
+\end{equation}
+
+where, similar to $u(t)$ in \textbf{eq.\ref{eq1},} $u[n]$ is the \textit{control variable} at discrete time index $n$ and
+\begin{align*}
+\begin{split}
+    p[n] &= K_{p}e[n] \\\\
+    i[n] &= \frac{K_{i}T}{2}\left(e[n] + e[n-1]\right) + i[n-1] \\\\
+    d[n] &= \frac{2K_{d}}{2\tau + T}\left(e[n] - e[n-1]\right) + \frac{2\tau - T}{2\tau + T}d[n-1].
+\end{split}
+\end{align*}
+
+\newpage
+Below is a block diagram of the discretized PID algorithm. Here, $r[n]$ denotes the \textit{setpoint} at time $n$ and $y[n]$ the \textit{process variable.}
+Notice it is very similar to the block diagram for the continuous variant.
+
+% Discrete PID block diagram
+\begin{tikzpicture}[auto]
+    % nodes: input
+    \node [input, name=input]{}; 
+    \node [sum, right = 1.3cm of input] (sum_1) {$\Sigma$};
+    \node [blank, name = root, right = 1.7cm of sum_1]{};
+
+    % nodes: PID
+    \node [block, text width = 7em, right = 1cm of root] (pid_integral) {\textbf{I}: $i[n]$};
+    \node [block, text width = 7em, above = of pid_integral] (pid_proportional) {\textbf{P}: $p[n]$};
+    \node [block, text width = 7em, below = of pid_integral] (pid_derivative) {\textbf{D}: $d[n]$};
+
+    % nodes: Output
+    \node [sum, right = 2cm of pid_integral] (sum_2) {$\Sigma$}; 
+    \node [block, right = 1.5cm of sum_2] (plant_process) {Plant Process};
+    \node [blank, name=feedback, right = 0.2cm of plant_process]{};
+    \node [output, name=output, right = 1.60cm of feedback]{};
+    \node [block, below = of pid_derivative] (sensor) {Sensor};
+
+    % arrows: input -> PID
+    \draw [big_arrow] (input) -- node [above]{$r[n]$} node [below,pos=0.90] {$\arrowtext{+}$}(sum_1);
+    \draw [-] (sum_1) -- node {$e[n]$}(root);
+    \draw [big_arrow] (root) -- (pid_integral);
+    \draw [big_arrow] (root) |- (pid_proportional);
+    \draw [big_arrow] (root) |- (pid_derivative);
+
+    % arrows: PID -> PV
+    \draw [big_arrow] (pid_integral) -- node [pos=0.90]{$\arrowtext{+}$}(sum_2);
+    \draw [big_arrow] (pid_proportional) -| node [pos=0.90]{$\arrowtext{+}$} (sum_2);
+    \draw [big_arrow] (pid_derivative) -| node [pos=0.90]{$\arrowtext{+}$}(sum_2);
+    \draw [big_arrow] (sum_2) -- node{$u[n]$}(plant_process);
+
+    % arrows: p(v) -> r(t)
+    \draw [-] (plant_process) -- (feedback);
+    \draw [-] (feedback) |- (sensor);
+    \draw [big_arrow] (sensor) -| node [below,pos=0.30] {measurement} node [pos=0.96]{$\arrowtext{-}$}(sum_1);
+    \draw [big_arrow] (feedback) -- node {$y[n]$}(output);
+\end{tikzpicture}
+
+\end{document}
